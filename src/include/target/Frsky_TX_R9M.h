@@ -21,8 +21,12 @@
 #define GPIO_PIN_TX_ENABLE              GPIO_PIN_RFamp_APC1
 #define GPIO_PIN_SDA                    PB7
 #define GPIO_PIN_SCL                    PB6
-#define GPIO_PIN_RCSIGNAL_RX            PB11 // not yet confirmed
-#define GPIO_PIN_RCSIGNAL_TX            PB10 // not yet confirmed
+
+#define GPIO_PIN_RCSIGNAL_RX            PB11 // S.Port rx, USART3
+#define GPIO_PIN_RCSIGNAL_TX            PB10 // S.Port tx, USART3
+#define GPIO_PIN_BAY_RX                 PA3  // jr-bay rx pin, inverted ttl serial, USART2
+#define GPIO_PIN_BAY_TX                 PA2  // jr-bay tx pin, inverted ttl serial, USART2
+
 #define GPIO_PIN_LED_RED                PA11 // Red LED
 #define GPIO_PIN_LED_GREEN              PA12 // Green LED
 #define GPIO_PIN_BUTTON                 PA8 // pullup e.g. LOW when pressed
@@ -31,8 +35,8 @@
 #define GPIO_PIN_DIP2                   PA11 // dip switch 2
 #define GPIO_PIN_FAN_EN                 PB9 // Fan mod https://github.com/AlessandroAU/ExpressLRS/wiki/R9M-Fan-Mod-Cover
 
-#define GPIO_PIN_DEBUG_RX               PA10 // confirmed
-#define GPIO_PIN_DEBUG_TX               PA9 // confirmed
+#define GPIO_PIN_DEBUG_RX               PA10 // confirmed, USART1 
+#define GPIO_PIN_DEBUG_TX               PA9 // confirmed, USART1
 
 
 #define GPIO_PIN_BUFFER_OE              PA5  //CONFIRMED

@@ -55,6 +55,7 @@ MSP msp;
 ELRS_EEPROM eeprom;
 TxConfig config;
 Stream *TxBackpack;
+Stream *BaySerial;
 
 volatile uint8_t NonceTX;
 
@@ -898,6 +899,7 @@ static void setupTxBackpack()
   serialPort->begin();
 #elif (defined(GPIO_PIN_DEBUG_RX) && GPIO_PIN_DEBUG_RX != UNDEF_PIN) || (defined(GPIO_PIN_DEBUG_TX) && GPIO_PIN_DEBUG_TX != UNDEF_PIN)
   HardwareSerial *serialPort = new HardwareSerial(2);
+  // HardwareSerial *serialPort = new HardwareSerial(GPIO_PIN_DEBUG_RX, GPIO_PIN_DEBUG_TX);
   #if defined(GPIO_PIN_DEBUG_RX) && GPIO_PIN_DEBUG_RX != UNDEF_PIN
     serialPort->setRx(GPIO_PIN_DEBUG_RX);
   #endif
@@ -909,6 +911,15 @@ static void setupTxBackpack()
   Stream *serialPort = new NullStream();
 #endif
   TxBackpack = serialPort;
+  
+  // pet - JR bay port
+#if (defined(GPIO_PIN_BAY_RX) && GPIO_PIN_BAY_RX != UNDEF_PIN) && (defined(GPIO_PIN_BAY_TX) && GPIO_PIN_BAY_TX != UNDEF_PIN)  
+  HardwareSerial *baySerialPort = new HardwareSerial(GPIO_PIN_BAY_RX, GPIO_PIN_BAY_TX);
+  baySerialPort->begin(115200);
+#else 
+  Stream *baySerialPort = new NullStream();
+#endif
+  BaySerial = baySerialPort;
 }
 
 /**
@@ -1053,6 +1064,13 @@ void loop()
   if (TelemetryReceiver.HasFinishedData())
   {
       crsf.sendTelemetryToTX(CRSFinBuffer);
+      
+      // pet 
+      CRSFinBuffer[0] = CRSF_ADDRESS_RADIO_TRANSMITTER;
+      uint8_t csize = CRSF_FRAME_SIZE(CRSFinBuffer[CRSF_TELEMETRY_LENGTH_INDEX]);      
+      TxBackpack->write(CRSFinBuffer, csize);      
+      BaySerial->write(CRSFinBuffer, csize);
+              
       TelemetryReceiver.Unlock();
   }
 
