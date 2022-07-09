@@ -74,13 +74,16 @@ https://github.com/jaxxzer
 #endif
 
 // External pads
-// #define R9m_Ch1    PA8
-// #define R9m_Ch2    PA11
-// #define R9m_Ch3    PA9
-// #define R9m_Ch4    PA10
+#define R9m_Ch1    PA8
+#define R9m_Ch2    PA11
+#define R9m_Ch3    PA9
+#define R9m_Ch4    PA10
 // #define R9m_sbus   PA2
 // #define R9m_sport  PA5
 // #define R9m_isport PB11
+
+// uS on channel to activate
+#define ch1_activate    1275
 
 //method to set HSE and clock speed correctly//
 // #if defined(HSE_VALUE)

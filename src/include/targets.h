@@ -1,7 +1,6 @@
 #pragma once
 #if !defined TARGET_NATIVE
 #include <Arduino.h>
-#include "target/Frsky_TX_R9M.h"
 #endif
 
 #define UNDEF_PIN (-1)

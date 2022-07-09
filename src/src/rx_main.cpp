@@ -626,6 +626,15 @@ static void ICACHE_RAM_ATTR ProcessRfPacket_RC()
         #else
         crsf.sendRCFrameToFC();
         #endif
+
+        #if defined(R9m_Ch1)
+        if (( crsf.GetChannelOutput(4+6) > (ch1_activate-10) ) || 
+            ( crsf.GetChannelOutput(4+6) < (ch1_activate+10) )) {
+                digitalWrite(R9m_Ch1, LOW);
+        } else {
+                digitalWrite(R9m_Ch1, HIGH);
+        }
+        #endif
     }
 }
 
@@ -922,6 +931,10 @@ static void setupGpio()
     pinMode(GPIO_PIN_UART1TX_INVERT, OUTPUT);
     digitalWrite(GPIO_PIN_UART1TX_INVERT, LOW);
 #endif
+#if defined(R9m_Ch1)
+    pinMode(R9m_Ch1, OUTPUT);
+    digitalWrite(R9m_Ch1, HIGH);
+#endif    
 }
 
 static void setupBindingFromConfig()
