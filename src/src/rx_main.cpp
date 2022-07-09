@@ -627,12 +627,13 @@ static void ICACHE_RAM_ATTR ProcessRfPacket_RC()
         crsf.sendRCFrameToFC();
         #endif
 
-        #if defined(R9m_Ch1)
-        if (( crsf.GetChannelOutput(4+6) > (ch1_activate-10) ) || 
-            ( crsf.GetChannelOutput(4+6) < (ch1_activate+10) )) {
-                digitalWrite(R9m_Ch1, LOW);
+        #if defined(TARGET_R9SLIMPLUS_RX)
+        if (( CRSF_to_US(crsf.GetChannelOutput(ch1_trig_RCchannel-1)) > (ch1_trig_us-10) ) && 
+            ( CRSF_to_US(crsf.GetChannelOutput(ch1_trig_RCchannel-1)) < (ch1_trig_us+10) )) 
+        {
+                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, HIGH);
         } else {
-                digitalWrite(R9m_Ch1, HIGH);
+                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, LOW);
         }
         #endif
     }
@@ -931,9 +932,9 @@ static void setupGpio()
     pinMode(GPIO_PIN_UART1TX_INVERT, OUTPUT);
     digitalWrite(GPIO_PIN_UART1TX_INVERT, LOW);
 #endif
-#if defined(R9m_Ch1)
-    pinMode(R9m_Ch1, OUTPUT);
-    digitalWrite(R9m_Ch1, HIGH);
+#if defined(TARGET_R9SLIMPLUS_RX)
+    pinMode(r9slimplusOTA_GPIO_PIN_CH1, OUTPUT);
+    digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, HIGH);
 #endif    
 }
 

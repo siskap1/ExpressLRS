@@ -73,17 +73,35 @@ https://github.com/jaxxzer
     #define GPIO_PIN_BUTTON         PC13 // pullup e.g. LOW when pressed
 #endif
 
+#if defined(TARGET_R9SLIMPLUS_RX)
+    // PET, slim+ OTA CON1
+    #define r9slimplusOTA_GPIO_PIN_SPORT        SN74LVC2G240
+    #define r9slimplusOTA_GPIO_PIN_SBUS_IN      SN74LVC2G240
+    #define r9slimplusOTA_GPIO_PIN_SBUS_OUT     SN74LVC2G240
+    #define r9slimplusOTA_GPIO_PIN_RSSI_OUT       PB8     //
+    #define r9slimplusOTA_GPIO_PIN_TX1            PA9     // USART1 TX, RX is on PA10
+    #define r9slimplusOTA_GPIO_PIN_RX1            PB11    // USART3 RX, TX us on PB10
+
+    // PET, slim+ OTA CON2
+    #define r9slimplusOTA_GPIO_PIN_CH1            PB1     // t1, t3, t8
+    #define r9slimplusOTA_GPIO_PIN_CH2            PB0     // t1, t3, t8
+    #define r9slimplusOTA_GPIO_PIN_CH3            PA7     // t1, t3, t8, t17
+    #define r9slimplusOTA_GPIO_PIN_CH4            PA6     // t1, t3, t8, t16
+    #define r9slimplusOTA_GPIO_PIN_CH5_RX         PA3     // t2, t15, USART2_RX
+    #define r9slimplusOTA_GPIO_PIN_CH6_TX         PA2     // t2, t15, USART2_X
+    
+    #define ch1_trig_RCchannel                      6       // ch1..ch11
+    #define ch1_trig_us                             1275      // uS on channel to activate
+#endif
+
 // External pads
-#define R9m_Ch1    PA8
-#define R9m_Ch2    PA11
-#define R9m_Ch3    PA9
-#define R9m_Ch4    PA10
+// #define R9m_Ch1    PA8
+// #define R9m_Ch2    PA11
+// #define R9m_Ch3    PA9
+// #define R9m_Ch4    PA10
 // #define R9m_sbus   PA2
 // #define R9m_sport  PA5
 // #define R9m_isport PB11
-
-// uS on channel to activate
-#define ch1_activate    1275
 
 //method to set HSE and clock speed correctly//
 // #if defined(HSE_VALUE)
