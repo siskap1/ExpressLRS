@@ -90,7 +90,7 @@ https://github.com/jaxxzer
     #define r9slimplusOTA_GPIO_PIN_CH5_RX         PA3     // t2, t15, USART2_RX
     #define r9slimplusOTA_GPIO_PIN_CH6_TX         PA2     // t2, t15, USART2_X
     
-    #define ch1_trig_RCchannel                      6       // ch1..ch11
+    #define ch1_trig_RCchannel                      6         // ch1..ch11
     #define ch1_trig_us                             1275      // uS on channel to activate
 #endif
 
