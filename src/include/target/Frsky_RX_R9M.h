@@ -73,6 +73,27 @@ https://github.com/jaxxzer
     #define GPIO_PIN_BUTTON         PC13 // pullup e.g. LOW when pressed
 #endif
 
+#if defined(TARGET_R9SLIMPLUS_RX)
+    // PET, slim+ OTA CON1
+    #define r9slimplusOTA_GPIO_PIN_SPORT        SN74LVC2G240
+    #define r9slimplusOTA_GPIO_PIN_SBUS_IN      SN74LVC2G240
+    #define r9slimplusOTA_GPIO_PIN_SBUS_OUT     SN74LVC2G240
+    #define r9slimplusOTA_GPIO_PIN_RSSI_OUT     PB8     // rssi out analog (analogWrite())
+    #define r9slimplusOTA_GPIO_PIN_TX1          PA9     // USART1_TX, RX is on PA10, INAV - comm. with FC
+    #define r9slimplusOTA_GPIO_PIN_RX1          PB11    // USART3_RX, TX us on PB10, INAV - comm. with FC
+
+    // PET, slim+ OTA CON2  // t=timer
+    #define r9slimplusOTA_GPIO_PIN_CH1          PB1     // t1, t3, t8, runcam2 4k remote (thru 2n7000 mosfet pulls it's remote pin to GND  )
+    #define r9slimplusOTA_GPIO_PIN_CH2          PB0     // t1, t3, t8
+    #define r9slimplusOTA_GPIO_PIN_CH3          PA7     // t1, t3, t8, t17
+    #define r9slimplusOTA_GPIO_PIN_CH4          PA6     // t1, t3, t8, t16
+    #define r9slimplusOTA_GPIO_PIN_CH5_RX       PA3     // t2, t15, USART2_RX, PET - GPS in
+    #define r9slimplusOTA_GPIO_PIN_CH6_TX       PA2     // t2, t15, USART2_TX
+    
+    #define ch1_trig_RCchannel                  6       // ch1..ch11
+    #define ch1_trig_us                         1275    // uS on channel to activate
+#endif
+
 // External pads
 // #define R9m_Ch1    PA8
 // #define R9m_Ch2    PA11

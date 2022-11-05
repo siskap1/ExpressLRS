@@ -626,7 +626,17 @@ static void ICACHE_RAM_ATTR ProcessRfPacket_RC()
         #else
         crsf.sendRCFrameToFC();
         #endif
+
+        #if defined(TARGET_R9SLIMPLUS_RX)
+        if (( CRSF_to_US(crsf.GetChannelOutput(ch1_trig_RCchannel-1)) > (ch1_trig_us-10) ) && 
+            ( CRSF_to_US(crsf.GetChannelOutput(ch1_trig_RCchannel-1)) < (ch1_trig_us+10) )) 
+        {
+                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, HIGH);
+        } else {
+                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, LOW);
     }
+        #endif
+}
 }
 
 /**
@@ -922,6 +932,10 @@ static void setupGpio()
     pinMode(GPIO_PIN_UART1TX_INVERT, OUTPUT);
     digitalWrite(GPIO_PIN_UART1TX_INVERT, LOW);
 #endif
+#if defined(TARGET_R9SLIMPLUS_RX)
+    pinMode(r9slimplusOTA_GPIO_PIN_CH1, OUTPUT);
+    digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, LOW);      // goes on 2n7000 mosfet that pull's the runcam2 4k remote pin to GND
+#endif    
 }
 
 static void setupBindingFromConfig()
