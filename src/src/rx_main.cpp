@@ -173,6 +173,49 @@ uint8_t RFmodeCycleMultiplier;
 bool LockRFmode = false;
 ///////////////////////////////////////
 
+// PET - rc24k remote timing
+uint32_t    timClick = 0;
+uint8_t     clicks = 0;
+bool        ch1High = false, inClick = false;
+
+// PET - GPS input
+#if defined(TARGET_R9SLIMPLUS_RX)
+    #include "UbxGpsNavPvt.h"
+    //define PET_DEBUG_GPS
+    HardwareSerial gpsSerial(USART2);
+    UbxGpsNavPvt<HardwareSerial> GPS(gpsSerial);
+    uint32_t lastUARTin = 0, lastGPSsend = 0;
+    /*
+    uint8_t GPSpackage[19] = {
+        CRSF_SYNC_BYTE,
+        CRSF_FRAME_GPS_PAYLOAD_SIZE + 2,    // length of 17bytes. 15bytes payload + 1byte type + 1byte CRC
+        CRSF_FRAMETYPE_GPS,
+        0x1D, 0xD4, 0x87, 0x87,             // int32(lat)
+        0x08, 0xAD, 0x4D, 0x58,             // int32(lon)
+        0x00, 0x20,                         // uint16(gspeed)
+        0x18, 0x88,                         // uint16(heading)
+        0x03, 0xE7,                         // uint16(alt)
+        0x07,                               // uint8(numSV)
+        0x00                                // CRC      // should be 0xD7
+    };*/
+    uint8_t GPSpackage[19] = {
+        CRSF_SYNC_BYTE,
+        CRSF_FRAME_GPS_PAYLOAD_SIZE + 2,    // length of 17bytes. 15bytes payload + 1byte type + 1byte CRC
+        CRSF_FRAMETYPE_GPS,
+        0x1E, 0x89, 0xC6, 0x4E,             // int32(lat)
+        0x07, 0x5B, 0xCD, 0x15,             // int32(lon)
+        0x00, 0x7B,                         // uint16(gspeed)
+        0x04, 0xD2,                         // uint16(heading)
+        0x00, 0x7B,                         // uint16(alt)
+        0x0A,                               // uint8(numSV)
+        0x00                                // CRC      // should be 0x99
+    };
+    #if defined PET_DEBUG_GPS
+    char printbuf[120];
+    #endif
+#endif
+///////////////////////////////////////
+        
 #if defined(BF_DEBUG_LINK_STATS)
 // Debug vars
 uint8_t debug1 = 0;
@@ -622,21 +665,100 @@ static void ICACHE_RAM_ATTR ProcessRfPacket_RC()
     if (connectionHasModelMatch)
     {
         #if defined(GPIO_PIN_PWM_OUTPUTS)
-        newChannelsAvailable = true;
+            newChannelsAvailable = true;
         #else
-        crsf.sendRCFrameToFC();
+            #if !defined(PET_DEBUG_GPS)
+                crsf.sendRCFrameToFC();
+            #endif
         #endif
 
-        #if defined(TARGET_R9SLIMPLUS_RX)
-        if (( CRSF_to_US(crsf.GetChannelOutput(ch1_trig_RCchannel-1)) > (ch1_trig_us-10) ) && 
-            ( CRSF_to_US(crsf.GetChannelOutput(ch1_trig_RCchannel-1)) < (ch1_trig_us+10) )) 
-        {
-                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, HIGH);
-        } else {
-                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, LOW);
-    }
+        // PET - rc24k remote triggering                
+        #if defined(TARGET_R9SLIMPLUS_RX)      
+            if (( CRSF_to_US(crsf.GetChannelOutput(pin_ch1_triggering_RCchannel-1)) > (pin_ch1_singleclick_us-5) ) && 
+                ( CRSF_to_US(crsf.GetChannelOutput(pin_ch1_triggering_RCchannel-1)) < (pin_ch1_singleclick_us+5) )) 
+            {
+                if ( (clicks == 0) && ((millis() - timClick) > tClickRepeat) ) clicks = 1;
+            } 
+
+            if (( CRSF_to_US(crsf.GetChannelOutput(pin_ch1_triggering_RCchannel-1)) > (pin_ch1_doubleclick_us-5) ) && 
+                ( CRSF_to_US(crsf.GetChannelOutput(pin_ch1_triggering_RCchannel-1)) < (pin_ch1_doubleclick_us+5) )) 
+            {
+                if ( (clicks == 0) && ((millis() - timClick) > tClickRepeat) ) clicks = 2;
+            }         
         #endif
+    }
 }
+static void handleGPS(){
+    if (GPS.ready()){               // must be called in loop to process the GPS uart...
+        if (GPS.isGood()){
+            GPS.saveSolution();
+            GPS.solution.timestamp = millis();
+        } else {
+            if ( ((millis() - GPS.solution.timestamp) > 30000UL) && (GPS.isJustEnough()) ){       // good solution is more than 30s old and we have a another barely usable one
+                GPS.saveSolution();
+                GPS.solution.timestamp = (millis() - 25000);    // so that the worse solution gets updates every 5s
+            } else {
+                // GPS message received and parsed, but the GPS solution is not good enough
+            }
+        }        
+        //CRSF_TX_SERIAL.println("GPS ready");
+    }
+}
+static void memcpy_reverse(uint8_t *dst, const byte *src, size_t n){        // like memcpy, but change the endianness
+    for (size_t i = 0; i < n; ++i){     
+        dst[n-1-i] = src[i];
+    }
+}
+static void queue_transmit_GPS_telemtry(){
+    // copy GPS solution to GPSpackage buffer
+    uint16_t tmp;
+    memcpy_reverse(GPSpackage+3, (byte *)&GPS.solution.lat, 4);         
+    memcpy_reverse(GPSpackage+7, (byte *)&GPS.solution.lon, 4);
+    tmp = (36UL*GPS.solution.gSpeed / 1000UL);  memcpy_reverse(GPSpackage+11, (byte *)&tmp, 2);     // crsf is km/h*10, ublox is mm/s
+    tmp = (GPS.solution.headMot / 100U);        memcpy_reverse(GPSpackage+13, (byte *)&tmp, 2);     // crsf is degree*1e2, ublox is degree*1e5
+    tmp = (GPS.solution.hMSL / 1000U)+1000U;    memcpy_reverse(GPSpackage+15, (byte *)&tmp, 2);     // crsf is meters+1000m offset, ublox is mm
+    memcpy(GPSpackage+17, &GPS.solution.numSV, 1);
+        
+    uint8_t crc = crsf_crc.calc(GPSpackage[2]);                                       // crc from frame_type
+    crc = crsf_crc.calc((byte *)&GPSpackage+3, CRSF_FRAME_GPS_PAYLOAD_SIZE, crc);     // crc from the payload
+    GPSpackage[18] = crc;
+    #if defined (PET_DEBUG_GPS)
+        snprintf(printbuf, 119, "GPSpkg: %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x \n", 
+            GPSpackage[0],  GPSpackage[1],  GPSpackage[2],  GPSpackage[3],  GPSpackage[4],  GPSpackage[5],  GPSpackage[6], 
+            GPSpackage[7],  GPSpackage[8],  GPSpackage[9],  GPSpackage[10], GPSpackage[11], GPSpackage[12], GPSpackage[13], 
+            GPSpackage[14], GPSpackage[15], GPSpackage[16], GPSpackage[17], GPSpackage[18]
+            );    
+        CRSF_TX_SERIAL.print(printbuf);
+    #endif
+    telemetry.AppendTelemetryPackage(GPSpackage);
+}
+static void checkGPStelemetry(){
+    if (  (connectionState != disconnected) && connectionHasModelMatch && 
+           ((millis() - lastUARTin) > 10000) &&         // no comm. from FC for more than 10s
+           ((millis() - lastGPSsend) > 500)   )         // not more often than 500ms
+    {
+        queue_transmit_GPS_telemtry();
+        lastGPSsend = millis();
+    }
+}
+static void handleRC24kClick(){    
+    if (clicks > 0){
+        if (!inClick ){                                     // start of a click, transition to high
+            timClick = millis();
+            inClick = true;
+            ch1High = true;
+            digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, HIGH);
+        } else {
+            if ( ((millis() - timClick) > tClickDuration) && (ch1High) ){         // in the click, transition to low
+                digitalWrite(r9slimplusOTA_GPIO_PIN_CH1, LOW);
+                ch1High = false;
+            }
+            if ((millis() - timClick) > (tClickDuration+tClickPause)){            // end of the click
+                inClick = false;
+                clicks--;
+            }            
+        }        
+    }        
 }
 
 /**
@@ -662,7 +784,9 @@ static void ICACHE_RAM_ATTR MspReceiveComplete()
             crsf_ext_header_t *receivedHeader = (crsf_ext_header_t *) MspData;
             if ((receivedHeader->dest_addr == CRSF_ADDRESS_BROADCAST || receivedHeader->dest_addr == CRSF_ADDRESS_FLIGHT_CONTROLLER))
             {
-                crsf.sendMSPFrameToFC(MspData);
+                #if !defined(PET_DEBUG_GPS)
+                    crsf.sendMSPFrameToFC(MspData);
+                #endif                
             }
 
             if ((receivedHeader->dest_addr == CRSF_ADDRESS_BROADCAST || receivedHeader->dest_addr == CRSF_ADDRESS_CRSF_RECEIVER))
@@ -896,6 +1020,10 @@ static void setupSerial()
     #endif
 #endif
 
+// PET GPS receive
+#if defined(TARGET_R9SLIMPLUS_RX)
+    GPS.begin(115200);    
+#endif    
 }
 
 static void setupConfigAndPocCheck()
@@ -982,8 +1110,12 @@ static void HandleUARTin()
             uint8_t deviceInformation[DEVICE_INFORMATION_LENGTH];
             crsf.GetDeviceInformation(deviceInformation, 0);
             crsf.SetExtendedHeaderAndCrc(deviceInformation, CRSF_FRAMETYPE_DEVICE_INFO, DEVICE_INFORMATION_FRAME_SIZE, CRSF_ADDRESS_CRSF_RECEIVER, CRSF_ADDRESS_FLIGHT_CONTROLLER);
-            crsf.sendMSPFrameToFC(deviceInformation);
+            #if !defined(PET_DEBUG_GPS)
+                crsf.sendMSPFrameToFC(deviceInformation);
+            #endif                
+            
         }
+        lastUARTin = millis();
     }
 #endif
 }
@@ -1056,7 +1188,9 @@ static void cycleRfMode(unsigned long now)
         // Display the current air rate to the user as an indicator something is happening
         scanIndex++;
         Radio.RXnb();
-        INFOLN("%u", ExpressLRS_currAirRate_Modparams->interval);
+        #if !defined(PET_DEBUG_GPS)
+            //INFOLN("%u", ExpressLRS_currAirRate_Modparams->interval);         // why spam FC with that...
+        #endif           
 
         // Switch to FAST_SYNC if not already in it (won't be if was just connected)
         RFmodeCycleMultiplier = 1;
@@ -1159,7 +1293,9 @@ static void checkSendLinkStatsToFc(uint32_t now)
         if ((connectionState != disconnected && connectionHasModelMatch) ||
             SendLinkStatstoFCForcedSends)
         {
-            crsf.sendLinkStatisticsToFC();
+            #if !defined(PET_DEBUG_GPS)
+                crsf.sendLinkStatisticsToFC();    
+            #endif  
             SendLinkStatstoFCintervalLastSent = now;
             if (SendLinkStatstoFCForcedSends)
                 --SendLinkStatstoFCForcedSends;
@@ -1221,9 +1357,9 @@ void setup()
     devicesStart();
 }
 
-void loop()
-{
-    unsigned long now = millis();
+void loop()                                         // seems like the looptime is about 7uS - 8uS
+{    
+    unsigned long now = millis();    
     HandleUARTin();
     if (hwTimer.running == false)
     {
@@ -1292,6 +1428,10 @@ void loop()
     }
     updateTelemetryBurst();
     updateBindingMode();
+    
+    handleRC24kClick();
+    handleGPS();
+    checkGPStelemetry();
 }
 
 struct bootloader {

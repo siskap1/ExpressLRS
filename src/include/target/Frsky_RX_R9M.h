@@ -90,8 +90,15 @@ https://github.com/jaxxzer
     #define r9slimplusOTA_GPIO_PIN_CH5_RX       PA3     // t2, t15, USART2_RX, PET - GPS in
     #define r9slimplusOTA_GPIO_PIN_CH6_TX       PA2     // t2, t15, USART2_TX
     
-    #define ch1_trig_RCchannel                  6       // ch1..ch11
-    #define ch1_trig_us                         1275    // uS on channel to activate
+    #define pin_ch1_triggering_RCchannel        6       // ch1..ch11; ch6 = failsafe/beeper at 2000, 1000 = idle
+    #define pin_ch1_singleclick_us              1275U   // uS on RCchannel to activate
+    #define pin_ch1_doubleclick_us              1425UL  // uS on RCchannel to activate
+
+    #define tClickDuration                       85      // mS RC24k remote pulse high duration
+    #define tClickPause                          85      // mS RC24k remote pause between 2 pulses in doubleclick
+    #define tClickRepeat                        1800UL   // ms minimum time to repat a click   // 1500mS also works but irregullary
+    // AUX2(ch6) - AUX7(ch11): 1000, 1275, 1425, 1500, 1575, 1725, 2000                                                 // 3bit, 7 pos; no signal idle = 1500 except for CH5(ARM) that is 1875
+    // AUX8(ch12): 1000, 1066, 1133, 1200, 1266, 1333, 1400, 1467, 1533, 1600, 1666, 1733, 1800, 1866, 1933, 2000       // 4bit, 16pos; no signal idle = 1500
 #endif
 
 // External pads

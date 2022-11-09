@@ -1,0 +1,58 @@
+            
+            snprintf(printbuf, 40, "%ld => %d:%d:%d, ", (millis() - GPS.solution.timestamp) , GPS.solution.hour, GPS.solution.min, GPS.solution.sec);
+            CRSF_TX_SERIAL.print(printbuf);
+            snprintf(printbuf, 110, "sats=%d, lat=%ld, lon=%ld, height=%ld, hAcc=%ld \n", GPS.solution.numSV, GPS.solution.lat, GPS.solution.lon, GPS.solution.height, GPS.solution.hAcc);
+            CRSF_TX_SERIAL.print(printbuf);
+
+
+did:
+- when there is no data from FC for more than 10sec, it will start sending GPS telemetry on it's own. Can tell by height=MSL instead of baro.
+- 
+
+todo:
+- powersafe beacon mode if not connected? (measure cons.; figure out an deepsleep or something; just wake up to receive get in sync? 
+                                        or change RF mode, transmit beacon, change BACK! because reset would start cycling rf modes)
+        void SetRFLinkRate(uint8_t index) 
+        Radio.SetFrequencyReg(FHSSgetNextFreq());
+        bool ICACHE_RAM_ATTR HandleSendTelemetryResponse()
+
+
+- powerswitching of VTX made reliable: RX will receive command on one channel (duration 0.5s), but will adjust the channel data for FC to do 2 channels
+- will need pin to turn off backup power after normal switch down
+- also the button on the receiver should be able to turn it off. If it's reset, that should happen automatically (pin active only after arming)
+- something like special disarm, that won't power the receiver off (like disarm with nonzero throttle)
+- cinematic sticks, ideally on mode switch
+
+- crash detection in logic programming INAV? - current limit? disarm???
+- 
+
+
+420000bps, 8n1 bigendian, one frame max. 64byte max. 1500uS
+
+addr:
+    CRSF_ADDRESS_GPS = 0xC2,
+    CRSF_ADDRESS_TBS_BLACKBOX = 0xC4,
+    CRSF_ADDRESS_FLIGHT_CONTROLLER = 0xC8,
+    CRSF_ADDRESS_RESERVED2 = 0xCA,
+    CRSF_ADDRESS_RACE_TAG = 0xCC,
+    CRSF_ADDRESS_RADIO_TRANSMITTER = 0xEA,
+    CRSF_ADDRESS_CRSF_RECEIVER = 0xEC,
+    CRSF_ADDRESS_CRSF_TRANSMITTER = 0xEE
+
+
+PX4:
+ /**
+  * Send telemetry GPS information
+  * @param uart_fd UART file descriptor
+  * @param latitude latitude [degree * 1e7]
+  * @param longitude longitude [degree * 1e7]
+  * @param groundspeed Ground speed [km/h * 10]
+  * @param gps_heading GPS heading [degree * 100]
+  * @param altitude Altitude [meters + 1000m offset]
+  * @param num_satellites number of satellites used
+  * @return true on success
+  */
+ __EXPORT bool crsf_send_telemetry_gps(int uart_fd, int32_t latitude, int32_t longitude, uint16_t groundspeed,
+                       uint16_t gps_heading, uint16_t altitude, uint8_t num_satellites);
+
+
